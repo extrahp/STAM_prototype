@@ -23,8 +23,26 @@
 
 <p>This be the STAM tool.
 
+<input type="file" id="file" name="txt-file"/>
+<output id="file"></output>
+
+<script>
+  function handleFileSelect(evt) {
+	  var file = evt.target.files[0]; // FileList object
+
+	  var readFile = new FileReader();
+	  readFile.onload = function(e) {
+	  	console.log(e.target.result);
+	  };
+	  readFile.readAsText(file,'UTF-8');
+	  //console.log(readFile);
+  }
+
+  document.getElementById('file').addEventListener('change', handleFileSelect, false);
+</script>
+
 <script src="./p5/p5.min.js"></script>
-<script type="text/javascript" src="r.js"></script>
+<!-- <script type="text/javascript" src="r.js"></script> -->
 <script type="text/javascript" src="app.js"></script>
 </p>
 

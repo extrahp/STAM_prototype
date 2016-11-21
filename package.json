@@ -9,6 +9,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "file-system": "^2.2.2",
     "firebase": "^3.6.0"
   }
 }
