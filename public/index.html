@@ -3,7 +3,14 @@
 <html>
 
 <head>
-<title>Script to Animation Mapper Tool</title>
+<style>
+div.noSelect {
+  -webkit-user-select: none;  /* Chrome all / Safari all */
+  -moz-user-select: none;     /* Firefox all */
+  -ms-user-select: none;      /* IE 10+ */
+}
+</style>
+<title>Kay's Script to Animation Mapper Tool</title>
 
 <script src="https://www.gstatic.com/firebasejs/3.6.0/firebase.js"></script>
 <script>
@@ -21,29 +28,16 @@
 
 <body>
 
-<p>This be the STAM tool.
+<p><div>This be the STAM tool. You can view a episode script already uploaded or upload a new one. Currently Episode 1 script is in place. Please type 1, and then press Enter.
+<!-- Upload button disabled for now -->
+<!-- <input type="file" id="file" name="txt-file"/>
+<output id="file"></output> -->
+</div>
 
-<input type="file" id="file" name="txt-file"/>
-<output id="file"></output>
-
-<script>
-  function handleFileSelect(evt) {
-	  var file = evt.target.files[0]; // FileList object
-
-	  var readFile = new FileReader();
-	  readFile.onload = function(e) {
-	  	console.log(e.target.result);
-	  };
-	  readFile.readAsText(file,'UTF-8');
-	  //console.log(readFile);
-  }
-
-  document.getElementById('file').addEventListener('change', handleFileSelect, false);
+<script src="./p5/p5.js"></script>
+<script type="text/javascript" src="app.js">
+  
 </script>
-
-<script src="./p5/p5.min.js"></script>
-<!-- <script type="text/javascript" src="r.js"></script> -->
-<script type="text/javascript" src="app.js"></script>
 </p>
 
 </body>
