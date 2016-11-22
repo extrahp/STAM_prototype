@@ -482,6 +482,8 @@ function keyPressed() {
         if (Number.isInteger(number)) {
           episode_number = number;
           storyScript = {};
+          dialogs = {};
+          lines = {};
           getScriptNumber();
         }
         name = "";
