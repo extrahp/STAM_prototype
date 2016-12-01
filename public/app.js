@@ -29,6 +29,11 @@ var createCancelBox;
 var textInput = '';
 var positions = {};
 var taskButtons = {};
+var selectedObject = {};
+var NORMALBOXCOLOR = 30;
+var NORMALBOXHIGHLIGHTED = 75;
+var NORMALTEXTBOX = 60;
+var NORMALTEXTHIGHLIGHTED = 100;
 
 class Button {
   constructor(x, y, text) {
@@ -71,11 +76,11 @@ class DialogBox {
   }
 
   drawBox(x, y) {
-    var width = window.innerWidth - 250;
+    var width = window.innerWidth - 150;
     if (mouseX >= x && mouseX < x + width && mouseY >= y && mouseY < y + this.height) 
-      fill(255);
+      fill(NORMALBOXHIGHLIGHTED);
     else
-      fill(200);
+      fill(NORMALBOXCOLOR);
 
     rect(x, y, width, this.height, 4);
     fill(0);
@@ -83,7 +88,7 @@ class DialogBox {
 
     var lineY = 0;
     textStyle(NORMAL);
-    fill(50);
+    fill(255);
     text("Line " + this.number, x + 5, y + 20);
     if (this.characterName != null) {
       fill(nameColors[this.characterName].red, nameColors[this.characterName].blue, nameColors[this.characterName].green);
@@ -92,7 +97,7 @@ class DialogBox {
       lineY += 30;
     }
     if (this.instructions != null) {
-      fill(0);
+      fill(150);
       textStyle(ITALIC);
       text(this.instructions, x + 65, y + 20 + lineY);
       lineY += 30;
@@ -105,7 +110,7 @@ class DialogBox {
   }
 
   drawButtons(x, y) {
-    var bwidth = window.innerWidth - 250;
+    var bwidth = window.innerWidth - 150;
 
     if (mouseX >= bwidth - 10 && mouseX < bwidth + 40 && mouseY >= y + 5 && mouseY < y + 25) 
       fill(50, 255, 50);
@@ -121,7 +126,7 @@ class DialogBox {
   }
 
   clickButtons(x, y) {
-    var bwidth = window.innerWidth - 250;
+    var bwidth = window.innerWidth - 150;
 
     if (mouseX >= bwidth - 10 && mouseX < bwidth + 40 && mouseY >= y + 5 && mouseY < y + 25) {
       if (mouseIsPressed) {
@@ -162,9 +167,9 @@ class DialogBox {
     }
     if (!(this.characterName in nameColors)) {
       nameColors[this.characterName] = {
-        red: floor(random(0, 155)),
-        blue: floor(random(0, 155)),
-        green: floor(random(0, 155)),
+        red: floor(random(100, 255)),
+        blue: floor(random(100, 255)),
+        green: floor(random(100, 255)),
       }
     }
   }
@@ -175,13 +180,26 @@ class TaskButton {
     this.taskInfo = object;
     this.column = column;
     this.row = row;
+    this.state = 0;
   }
 
   drawButton(x, y) {
-    if (mouseX > x + this.column * 105 && mouseX < x + this.column * 105 + 100 && mouseY > y + this.row * 32 && mouseY < y + this.row * 32 + 30)
-      fill(250);
-    else
-      fill(200);
+    if (mouseX > x + this.column * 105 && mouseX < x + this.column * 105 + 100 && mouseY > y + this.row * 32 && mouseY < y + this.row * 32 + 30) {
+      if (this.state == 0)
+        fill(250, 20, 20);
+      else if (this.state == 1)
+        fill(250);
+      else 
+        fill(50, 255, 50);
+    }
+    else {
+      if (this.state == 0)
+        fill(200, 10, 10);
+      else if (this.state == 1)
+        fill(200);
+      else
+        fill(30, 205, 30);
+    }
     rect(x + this.column * 105, y + this.row * 32, 100, 30, 5);
     fill(0);
     textAlign(CENTER);
@@ -190,17 +208,26 @@ class TaskButton {
   }
 
   clickButtons(x, y) {
-
     if (mouseX >= x + this.column * 105 && mouseX < x + this.column * 105 + 100  && mouseY >= y + this.row * 32 && mouseY < y + this.row * 32 + 30) {
+      selectedLine = this.taskInfo;
       if (mouseIsPressed) {
-        selectedLine = this.taskInfo;
+        selectedObject = this;
       }
     }
+  }
+  releaseButton() {
+    if (this.state < 2) {
+      this.state ++;
+    }
+    else {
+      this.state = 0;
+    }
+    selectedObject = {};
   }
 }
 
 function setup () {
-  createCanvas(window.innerWidth - 100, window.innerHeight - 100);
+  createCanvas(window.innerWidth - 25, window.innerHeight - 100);
 
   var userDataPromise = readUserData();
 
@@ -221,9 +248,13 @@ function setup () {
   createButtons();
 }
 
+function windowResized() {
+  resizeCanvas(window.innerWidth - 25, window.innerHeight - 100);
+}
+
 function draw () {
 
-  background(0);
+  background(51);
 
   if (mode == 'script') {
 
@@ -252,24 +283,24 @@ function draw () {
       scrollY -= abs(maxScroll - 500 - scrollY) / 5;
     }
 
-    if (maxScroll > (windowHeight - 50)) {
-      var barSize = 1 + ((windowHeight - 50) / maxScroll) * (windowHeight - 50);
-      currentScroll = 50 + (scrollY / maxScroll) * (windowHeight - 50 - barSize * 3);
+    if (maxScroll > (windowHeight - 100)) {
+      var barSize = 1 + ((windowHeight - 100) / maxScroll) * (windowHeight - 100);
+      currentScroll = 50 + (scrollY / maxScroll) * (windowHeight - 100 - barSize * 1.5);
       fill(255);
-      if (mouseIsPressed && mouseX >= windowWidth - 125) {
+      if (mouseIsPressed && mouseX >= windowWidth - 50) {
         currentScroll = mouseY - barSize/2;
-        scrollY = (currentScroll - 50) / (windowHeight - 50 - barSize * 3) * (maxScroll);
+        scrollY = (currentScroll - 50) / (windowHeight - 100 - barSize * 1.5) * (maxScroll);
       }
-      rect(windowWidth - 125, currentScroll, 25, barSize); 
+      rect(windowWidth - 50, currentScroll, 25, barSize); 
     }
   }
 
   else if (mode == 'create') {
-    fill(200);
+    fill(NORMALBOXCOLOR);
     rect(100, 100, windowWidth - 300, windowHeight - 250, 10);
     textAlign(CENTER);
     textStyle(BOLD);
-    fill(0);
+    fill(155);
     text("CREATE TASK", windowWidth/2, 120);
 
     textAlign(LEFT);
@@ -277,12 +308,11 @@ function draw () {
     text("Line Number: " + selectedLine.line_number + "\n\n" + 
       "Line Text: " + selectedLine.line_text, 150, 200);
     text("Description of Task: ", 150, 400);
-    fill(200);
     if ((hoveringOver(descriptionBox)) || (objectTargeted == descriptionBox)) {
-      fill(250);
+      fill(NORMALTEXTHIGHLIGHTED);
     }
     else
-      fill(220);
+      fill(NORMALTEXTBOX);
     rect(descriptionBox.x, descriptionBox.y, descriptionBox.width, descriptionBox.height, 5);
     fill(0);
     text(textInput, 280, 400);
@@ -310,34 +340,40 @@ function draw () {
     text('Cancel', createCancelBox.x + createCancelBox.width/2, createCancelBox.y + 20);
   }
 
+  // Timeline
   else {
-    var i = 0;
-    var j = 0;
-    var taskCount = 0;
-    for (uniqueLines in positions) {
-      for(task in positions[uniqueLines]) {
-        taskButtons[taskCount] = new TaskButton(positions[uniqueLines][task], i, j);
-        j++;
-        taskCount ++;
-      }
-      i++;
-      j = 0;
+    
+
+    // Draw the preview screen
+    fill(255);
+    rectMode(CENTER);
+    rect(windowWidth / 2, (windowHeight) * 1/4 + 50, ((windowHeight - 100) / 2) * 16 / 9, (windowHeight - 100) / 2);
+
+    // Line
+    rectMode(CORNERS);
+    fill(NORMALBOXCOLOR);
+    rect(50, (windowHeight - 100) * 2/3 - 50, windowWidth - 50, (windowHeight - 100) * 2/3 - 45);
+
+    // Draw the tasks buttons
+    rectMode(CORNER);
+    fill(NORMALBOXCOLOR);
+    rect(50, (windowHeight - 100) * 2 / 3, windowWidth - 100, (windowHeight - 100) * 1 / 6, 5);
+    for (var k = 0; k < objSize(taskButtons); k++) {
+      taskButtons[k].drawButton(60, (windowHeight - 100) * 2 / 3 + 10);
+      taskButtons[k].clickButtons(60, (windowHeight - 100) * 2 / 3 + 10);
     }
 
-    for (var k = 0; k < objSize(taskButtons); k++) {
-      taskButtons[k].drawButton(50, 200);
-      taskButtons[k].clickButtons(50, 200);
-    }
-    fill(200);
-    rect(50, 400, windowWidth-200, windowHeight-550, 10);
+    // The Information Box
+    fill(NORMALBOXCOLOR);
+    rect(50, (windowHeight - 100) * 3/4 + 100, windowWidth - 100, (windowHeight - 100) * 1 / 8, 5);
 
     if (selectedLine != null) {
-      fill(0);
+      fill(255);
       textAlign(LEFT);
       textStyle(NORMAL);
       if (selectedLine.line_object != null) {
-        text("Text: " + selectedLine.line_object.line_text, 60, 430);
-        text("Task: " + selectedLine.description, 60, 500);
+        text("Text: " + selectedLine.line_object.line_text, 60, (windowHeight - 100) * 3/4 + 120);
+        text("Task: " + selectedLine.description, 60, (windowHeight - 100) * 3/4 + 150);
       }
     }
   }
@@ -412,6 +448,10 @@ function mouseWheel(event) {
 }
 
 function mouseReleased() {
+  if (objSize(selectedObject) != 0) {
+    selectedObject.releaseButton();
+  }
+
   if (scriptButton.hoverButton())
       mode = 'script';
 
@@ -427,6 +467,20 @@ function mouseReleased() {
     }
     //console.log(positions);
     selectedLine = {};
+
+    var i = 0;
+    var j = 0;
+    var taskCount = 0;
+    for (uniqueLines in positions) {
+      for(task in positions[uniqueLines]) {
+        //if (taskButtons[taskCount] == null)
+          taskButtons[taskCount] = new TaskButton(positions[uniqueLines][task], i, j);
+        j++;
+        taskCount ++;
+      }
+      i++;
+      j = 0;
+    }
   }
 
   if (mode == 'script') {
