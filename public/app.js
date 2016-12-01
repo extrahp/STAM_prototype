@@ -26,6 +26,9 @@ var objectTargeted = {};
 var descriptionBox;
 var createConfirmBox;
 var createCancelBox;
+var markNotStartedBox;
+var markInProgressBox;
+var markCompletedBox;
 var textInput = '';
 var positions = {};
 var taskButtons = {};
@@ -34,6 +37,7 @@ var NORMALBOXCOLOR = 30;
 var NORMALBOXHIGHLIGHTED = 75;
 var NORMALTEXTBOX = 60;
 var NORMALTEXTHIGHLIGHTED = 100;
+var selectedTask = {};
 
 class Button {
   constructor(x, y, text) {
@@ -209,25 +213,21 @@ class TaskButton {
 
   clickButtons(x, y) {
     if (mouseX >= x + this.column * 105 && mouseX < x + this.column * 105 + 100  && mouseY >= y + this.row * 32 && mouseY < y + this.row * 32 + 30) {
-      selectedLine = this.taskInfo;
+      //selectedLine = this.taskInfo;
       if (mouseIsPressed) {
         selectedObject = this;
       }
     }
   }
   releaseButton() {
-    if (this.state < 2) {
-      this.state ++;
-    }
-    else {
-      this.state = 0;
-    }
+    selectedLine = this.taskInfo;
+    selectedTask = this;
     selectedObject = {};
   }
 }
 
 function setup () {
-  createCanvas(window.innerWidth - 25, window.innerHeight - 100);
+  createCanvas(window.innerWidth - 25, window.innerHeight * 0.9);
 
   var userDataPromise = readUserData();
 
@@ -249,7 +249,8 @@ function setup () {
 }
 
 function windowResized() {
-  resizeCanvas(window.innerWidth - 25, window.innerHeight - 100);
+  createButtons();
+  resizeCanvas(window.innerWidth - 25, window.innerHeight * 0.9);
 }
 
 function draw () {
@@ -283,13 +284,13 @@ function draw () {
       scrollY -= abs(maxScroll - 500 - scrollY) / 5;
     }
 
-    if (maxScroll > (windowHeight - 100)) {
-      var barSize = 1 + ((windowHeight - 100) / maxScroll) * (windowHeight - 100);
-      currentScroll = 50 + (scrollY / maxScroll) * (windowHeight - 100 - barSize * 1.5);
+    if (maxScroll > (windowHeight * 0.9)) {
+      var barSize = 1 + ((windowHeight * 0.9) / maxScroll) * (windowHeight * 0.9);
+      currentScroll = 50 + (scrollY / maxScroll) * (windowHeight * 0.9 - barSize * 1.5);
       fill(255);
       if (mouseIsPressed && mouseX >= windowWidth - 50) {
         currentScroll = mouseY - barSize/2;
-        scrollY = (currentScroll - 50) / (windowHeight - 100 - barSize * 1.5) * (maxScroll);
+        scrollY = (currentScroll - 50) / (windowHeight * 0.9 - barSize * 1.5) * (maxScroll);
       }
       rect(windowWidth - 50, currentScroll, 25, barSize); 
     }
@@ -347,35 +348,103 @@ function draw () {
     // Draw the preview screen
     fill(255);
     rectMode(CENTER);
-    rect(windowWidth / 2, (windowHeight) * 1/4 + 50, ((windowHeight - 100) / 2) * 16 / 9, (windowHeight - 100) / 2);
-
+    rect(windowWidth / 2, (windowHeight * 0.9) * 1/4 + 50, ((windowHeight * 0.9) / 2) * 16 / 9, (windowHeight * 0.9) / 2);
+    var belowScreen = (windowHeight * 0.9) * 1 / 4 + 50 + (windowHeight * 0.9) / 4;
     // Line
     rectMode(CORNERS);
     fill(NORMALBOXCOLOR);
-    rect(50, (windowHeight - 100) * 2/3 - 50, windowWidth - 50, (windowHeight - 100) * 2/3 - 45);
-
-    // Draw the tasks buttons
+    rect(50, belowScreen + 10, windowWidth * 0.95, belowScreen + 15);
     rectMode(CORNER);
-    fill(NORMALBOXCOLOR);
-    rect(50, (windowHeight - 100) * 2 / 3, windowWidth - 100, (windowHeight - 100) * 1 / 6, 5);
-    for (var k = 0; k < objSize(taskButtons); k++) {
-      taskButtons[k].drawButton(60, (windowHeight - 100) * 2 / 3 + 10);
-      taskButtons[k].clickButtons(60, (windowHeight - 100) * 2 / 3 + 10);
+    var numberofBoxes = objSize(positions);
+    var totalBoxes = objSize(taskList);
+    var boxSize = (windowWidth * 0.95 - 50) / numberofBoxes;
+    var buttonPosition = 0;
+    var trimmedPositions = {};
+    var start = 0;
+    for (each in positions) {
+      trimmedPositions[start] = positions[each];
+      start ++;
+    }
+    for (var i = 0; i < numberofBoxes; i++) {
+      var totalState = objSize(trimmedPositions[i]);
+      for (var j = 0; j < objSize(trimmedPositions[i]); j++) {
+        if (taskButtons[buttonPosition].state == 0)
+          totalState -= 1;
+        else if (taskButtons[buttonPosition].state == 1)
+          totalState -= 0.5;
+
+        if (totalState == 0)
+          fill(200, 10, 10);
+        else if (totalState > 0 && totalState < objSize(trimmedPositions[i]))
+          fill(200);
+        else
+          fill(30, 205, 30);
+        rect(50 + taskButtons[buttonPosition].column * boxSize, belowScreen + 10, boxSize, 5);
+
+        buttonPosition ++;
+      }
     }
 
+    // Draw the tasks buttons
+    rectMode(CORNERS);
+    fill(NORMALBOXCOLOR);
+    rect(50, belowScreen + 30, windowWidth * 0.95, (windowHeight * 0.9) * 5 / 6, 5);
+    rectMode(CORNER);
+    for (var k = 0; k < objSize(taskButtons); k++) {
+      taskButtons[k].drawButton(60, belowScreen + 30 + 10);
+      taskButtons[k].clickButtons(60, belowScreen + 30 + 10);
+    }
+    rectMode(CORNERS);
     // The Information Box
     fill(NORMALBOXCOLOR);
-    rect(50, (windowHeight - 100) * 3/4 + 100, windowWidth - 100, (windowHeight - 100) * 1 / 8, 5);
+    rect(50, (windowHeight * 0.9) * 5 / 6 + 10, (windowWidth * 0.95), (windowHeight * 0.9), 5);
+
+    rectMode(CORNER);
 
     if (selectedLine != null) {
       fill(255);
       textAlign(LEFT);
       textStyle(NORMAL);
       if (selectedLine.line_object != null) {
-        text("Text: " + selectedLine.line_object.line_text, 60, (windowHeight - 100) * 3/4 + 120);
-        text("Task: " + selectedLine.description, 60, (windowHeight - 100) * 3/4 + 150);
+        text("Text: " + selectedLine.line_object.line_text, 60, (windowHeight * 0.9) * 5 / 6 + 30);
+        text("Task: " + selectedLine.description, 60, (windowHeight * 0.9) * 5 / 6 + 60);
       }
     }
+    if (objSize(selectedTask) != 0) {
+      if ((hoveringOver(markNotStartedBox)) || (objectTargeted == markNotStartedBox)) {
+         fill(250, 20, 20);
+      }
+      else
+        fill(200, 10, 10);
+      rect(markNotStartedBox.x, markNotStartedBox.y, markNotStartedBox.width, markNotStartedBox.height, 5);
+      fill(255);
+      textAlign(CENTER);
+      textStyle(BOLD);
+      text('Not Started', markNotStartedBox.x + markNotStartedBox.width/2, markNotStartedBox.y + 20);
+
+      if ((hoveringOver(markInProgressBox)) || (objectTargeted == markInProgressBox)) {
+        fill(200);
+      }
+      else
+        fill(150);
+      rect(markInProgressBox.x, markInProgressBox.y, markInProgressBox.width, markInProgressBox.height, 5);
+      fill(255);
+      textAlign(CENTER);
+      textStyle(BOLD);
+      text('In Progress', markInProgressBox.x + markInProgressBox.width/2, markInProgressBox.y + 20);
+
+      if ((hoveringOver(markCompletedBox)) || (objectTargeted == markCompletedBox)) {
+        fill(50, 250, 50);
+      }
+      else
+        fill(30, 200, 30);
+      rect(markCompletedBox.x, markCompletedBox.y, markCompletedBox.width, markCompletedBox.height, 5);
+      fill(255);
+      textAlign(CENTER);
+      textStyle(BOLD);
+      text('Completed', markCompletedBox.x + markCompletedBox.width/2, markCompletedBox.y + 20);
+    }
+
   }
 
   fill(0);
@@ -448,8 +517,16 @@ function mouseWheel(event) {
 }
 
 function mouseReleased() {
-  if (objSize(selectedObject) != 0) {
-    selectedObject.releaseButton();
+  if (mode == 'timeline') {
+    if (objSize(selectedObject) != 0) {
+      selectedObject.releaseButton();
+    }
+    else {
+      if (!hoveringOver(markNotStartedBox) && !hoveringOver(markInProgressBox) && !hoveringOver(markCompletedBox)) {
+        selectedLine = {};
+        selectedTask = {};
+      }
+    }
   }
 
   if (scriptButton.hoverButton())
@@ -518,6 +595,24 @@ function mouseReleased() {
     }
     else {
       objectTargeted = {};
+    }
+  }
+
+  if (mode == 'timeline') {
+    if (hoveringOver(markNotStartedBox)) {
+      if (selectedTask != {}) {
+        selectedTask.state = 0;
+      }
+    }
+    if (hoveringOver(markInProgressBox)) {
+      if (selectedTask != {}) {
+        selectedTask.state = 1;
+      }
+    }
+    if (hoveringOver(markCompletedBox)) {
+      if (selectedTask != {}) {
+        selectedTask.state = 2;
+      }
     }
   }
 }
@@ -639,7 +734,6 @@ function createButtons() {
     height: 30,
   };
 
-
   createConfirmBox = {
     x: windowWidth/2 - 40- 60,
     y: windowHeight - 200,
@@ -647,6 +741,26 @@ function createButtons() {
     height: 30,
   };
 
+  markNotStartedBox = {
+    x: windowWidth * .95 - 315,
+    y: windowHeight * .9 - 40,
+    width: 100,
+    height: 30,
+  };
+
+  markInProgressBox = {
+    x: windowWidth * .95 - 210,
+    y: windowHeight * .9 - 40,
+    width: 100,
+    height: 30,
+  };
+
+  markCompletedBox = {
+    x: windowWidth * .95 - 105,
+    y: windowHeight * .9 - 40,
+    width: 100,
+    height: 30,
+  };
 }
 
 function hoveringOver(object) {
