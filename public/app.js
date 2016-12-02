@@ -14,10 +14,12 @@ var lines = {};
 var totalLines = 0;
 var dialogs = {};
 var scrollY = 0;
+var scrollX = 0;
 var nameColors = {};
 var mode = 'script';
 var maxScroll = 0;
 var currentScroll = 0;
+var hcurrentScroll = 0;
 var beginClickY = 0;
 var selectedLine = {};
 var taskList = {};
@@ -38,6 +40,8 @@ var NORMALBOXHIGHLIGHTED = 75;
 var NORMALTEXTBOX = 60;
 var NORMALTEXTHIGHLIGHTED = 100;
 var selectedTask = {};
+var maxHScroll = 0;
+var scrollingEnabled = false;
 
 class Button {
   constructor(x, y, text) {
@@ -180,11 +184,13 @@ class DialogBox {
 }
 
 class TaskButton {
-  constructor(object, column, row) {
+  constructor(object, column, row, taskNum) {
     this.taskInfo = object;
     this.column = column;
     this.row = row;
     this.state = 0;
+    this.taskNum = taskNum;
+    console.log(this.taskNum);
   }
 
   drawButton(x, y) {
@@ -288,7 +294,9 @@ function draw () {
       var barSize = 1 + ((windowHeight * 0.9) / maxScroll) * (windowHeight * 0.9);
       currentScroll = 50 + (scrollY / maxScroll) * (windowHeight * 0.9 - barSize * 1.5);
       fill(255);
-      if (mouseIsPressed && mouseX >= windowWidth - 50) {
+      if (mouseIsPressed && mouseX >= windowWidth - 50)
+        scrollingEnabled = true;
+      if (scrollingEnabled) {
         currentScroll = mouseY - barSize/2;
         scrollY = (currentScroll - 50) / (windowHeight * 0.9 - barSize * 1.5) * (maxScroll);
       }
@@ -344,6 +352,16 @@ function draw () {
   // Timeline
   else {
     
+    // keep scroll to bound
+    if (scrollX < 0) {
+      scrollX += abs(scrollX) / 5;
+    }
+
+    if (maxHScroll >= windowWidth * 0.9) {
+      if (scrollX > maxHScroll - windowWidth * 0.9) {
+        scrollX -= abs(maxHScroll - windowWidth * 0.9 - scrollX) / 5;
+      }
+    }
 
     // Draw the preview screen
     fill(255);
@@ -384,16 +402,40 @@ function draw () {
         buttonPosition ++;
       }
     }
+    // scroll bar
+    if (maxHScroll > (windowWidth * 0.95)) {
+      var hbarSize = 1 + (((windowWidth * 0.95) / maxHScroll)) * (windowWidth * 0.95) - 100;
+      hcurrentScroll = 50 + (scrollX / (maxHScroll - windowWidth * 0.9 + 50)) * (windowWidth * 0.95 - hbarSize);
+      fill(255);
+      if (mouseIsPressed && mouseY >= belowScreen + 15 && mouseY <= belowScreen + 25)
+        scrollingEnabled = true;
+      if (scrollingEnabled) {
+        hcurrentScroll = mouseX - hbarSize/2;
+        scrollX = (hcurrentScroll - 50) / (windowWidth * 0.95 - hbarSize) * (maxHScroll - windowWidth * 0.9 + 50);
+      }
+      rect(hcurrentScroll, belowScreen + 15, hbarSize, 10); 
+    }
 
     // Draw the tasks buttons
     rectMode(CORNERS);
     fill(NORMALBOXCOLOR);
-    rect(50, belowScreen + 30, windowWidth * 0.95, (windowHeight * 0.9) * 5 / 6, 5);
+    var extraSpace = 0;
+    extraSpace += maxHScroll;
+    extraSpace -= windowWidth * 0.9;
+    if (extraSpace < 1)
+      extraSpace = 0;
+    rect(50 - scrollX, belowScreen + 30, windowWidth * 0.95 - scrollX + extraSpace, (windowHeight * 0.9) * 5 / 6, 5);
     rectMode(CORNER);
+    maxHScroll = 0;
     for (var k = 0; k < objSize(taskButtons); k++) {
-      taskButtons[k].drawButton(60, belowScreen + 30 + 10);
-      taskButtons[k].clickButtons(60, belowScreen + 30 + 10);
+      maxHScroll += 105;
+      taskButtons[k].drawButton(60 - scrollX, belowScreen + 30 + 10);
+      taskButtons[k].clickButtons(60 - scrollX, belowScreen + 30 + 10);
     }
+    if (maxHScroll > windowWidth * 0.95) {
+
+    }
+
     rectMode(CORNERS);
     // The Information Box
     fill(NORMALBOXCOLOR);
@@ -512,11 +554,20 @@ function keyTyped() {
 }
 
 function mouseWheel(event) {
-  var barSize = 1 + ((windowHeight - 50) / maxScroll) * (windowHeight - 50);
-  scrollY += event.delta / 2;
+  if (mode == 'script') {
+    //var barSize = 1 + ((windowHeight - 50) / maxScroll) * (windowHeight - 50);
+    scrollY += event.delta / 2;
+  }
+  if (mode == 'timeline') {
+    if (maxHScroll > windowWidth * 0.9) {
+      scrollX += event.delta / 2;
+    }
+  }
 }
 
 function mouseReleased() {
+  if (scrollingEnabled)
+    scrollingEnabled = false;
   if (mode == 'timeline') {
     if (objSize(selectedObject) != 0) {
       selectedObject.releaseButton();
@@ -551,7 +602,7 @@ function mouseReleased() {
     for (uniqueLines in positions) {
       for(task in positions[uniqueLines]) {
         //if (taskButtons[taskCount] == null)
-          taskButtons[taskCount] = new TaskButton(positions[uniqueLines][task], i, j);
+          taskButtons[taskCount] = new TaskButton(positions[uniqueLines][task], i, j, taskCount);
         j++;
         taskCount ++;
       }
@@ -582,11 +633,13 @@ function mouseReleased() {
       taskList[taskNumber] = {
         line_object: selectedLine,
         description: textInput,
+        state: 0,
       };
       taskNumber++;
       objectTargeted = {};
       textInput = '';
       mode = 'script';
+      writeTaskData();
     }
     else if (hoveringOver(createCancelBox)) {
       objectTargeted = {};
@@ -602,16 +655,22 @@ function mouseReleased() {
     if (hoveringOver(markNotStartedBox)) {
       if (selectedTask != {}) {
         selectedTask.state = 0;
+        taskList[selectedTask.taskNum].state = 0;
+        writeTaskData();
       }
     }
     if (hoveringOver(markInProgressBox)) {
       if (selectedTask != {}) {
         selectedTask.state = 1;
+        taskList[selectedTask.taskNum].state = 1;
+        writeTaskData();
       }
     }
     if (hoveringOver(markCompletedBox)) {
       if (selectedTask != {}) {
         selectedTask.state = 2;
+        taskList[selectedTask.taskNum].state = 2;
+        writeTaskData();
       }
     }
   }
@@ -669,6 +728,10 @@ function writeScriptData() {
   });
 }
 
+function writeTaskData() {
+
+  firebase.database().ref('tasks/episode_' + episode_number).set(taskList);
+}
 
 function readUserData() {
   return firebase.database().ref('/users/').once('value').then(function(snapshot) {
@@ -685,6 +748,19 @@ function readScriptData() {
     }
     else {
       storyScript = {};
+    }
+  });
+}
+
+function readTaskData() {
+  return firebase.database().ref('/tasks/episode_' + episode_number).once('value').then(function(snapshot) {
+    var getTasks = snapshot.val();
+    if (getTasks != null) {
+      taskList = getTasks;
+      taskNumber = objSize(taskList);
+    }
+    else {
+      taskList = {};
     }
   });
 }
@@ -716,6 +792,12 @@ function getScriptNumber() {
   scriptDataPromise.then(function(data) {
     console.log("got script");
     populateLines();
+  });
+
+  var taskDataPromise = readTaskData();
+
+  taskDataPromise.then(function(data) {
+    console.log('got tasks');
   });
 }
 
