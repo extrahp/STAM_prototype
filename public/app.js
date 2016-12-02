@@ -368,6 +368,9 @@ function draw () {
     rectMode(CENTER);
     rect(windowWidth / 2, (windowHeight * 0.9) * 1/4 + 50, ((windowHeight * 0.9) / 2) * 16 / 9, (windowHeight * 0.9) / 2);
     var belowScreen = (windowHeight * 0.9) * 1 / 4 + 50 + (windowHeight * 0.9) / 4;
+    textAlign(CENTER);
+    fill(0);
+    text('NO IMAGE UPLOADED FOR THIS SCENE', windowWidth / 2, (windowHeight * 0.9) * 1/4 + 50);
     // Line
     rectMode(CORNERS);
     fill(NORMALBOXCOLOR);
