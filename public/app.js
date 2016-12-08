@@ -324,7 +324,7 @@ function draw () {
     textStyle(NORMAL);
     text("Line Number: " + selectedLine.line_number + "\n\n" + 
       "Line Text: " + selectedLine.line_text, 150, 200);
-    text("Description of Task: ", 150, 400);
+    text("Description of Task: ", 150, windowHeight * .5);
     if ((hoveringOver(descriptionBox)) || (objectTargeted == descriptionBox)) {
       fill(NORMALTEXTHIGHLIGHTED);
     }
@@ -332,7 +332,7 @@ function draw () {
       fill(NORMALTEXTBOX);
     rect(descriptionBox.x, descriptionBox.y, descriptionBox.width, descriptionBox.height, 5);
     fill(0);
-    text(textInput, 280, 400);
+    text(textInput, 280, windowHeight * .5);
 
     if ((hoveringOver(createConfirmBox)) || (objectTargeted == createConfirmBox)) {
       fill(50, 250, 50);
@@ -893,9 +893,9 @@ function getScriptNumber() {
 function createButtons() {
   descriptionBox = {
     x: 275,
-    y: 385,
+    y: windowHeight * .5 - 20,
     width: windowWidth - 550,
-    height: windowHeight - 600,
+    height: 100,
   };
 
   createCancelBox = {
