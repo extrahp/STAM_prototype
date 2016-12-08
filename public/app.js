@@ -1,7 +1,11 @@
 
 //console.log(firebase);
-var database = firebase.database();
-var name ="";
+const database = firebase.database();
+const storage = firebase.storage();
+var storageRef = storage.ref();
+var imageRef = storageRef.child('images');
+var storageEpisodeRef = '';
+var name = "";
 var userList = {};
 var local_id = 0;
 var storyScript = {};
@@ -31,6 +35,7 @@ var createCancelBox;
 var markNotStartedBox;
 var markInProgressBox;
 var markCompletedBox;
+var imageUploadBox;
 var textInput = '';
 var positions = {};
 var taskButtons = {};
@@ -42,6 +47,9 @@ var NORMALTEXTHIGHLIGHTED = 100;
 var selectedTask = {};
 var maxHScroll = 0;
 var scrollingEnabled = false;
+var test_image;
+var task_image;
+var image_files = {};
 
 class Button {
   constructor(x, y, text) {
@@ -184,13 +192,13 @@ class DialogBox {
 }
 
 class TaskButton {
-  constructor(object, column, row, taskNum) {
+  constructor(object, column, row, taskNum, state, taskImage) {
     this.taskInfo = object;
     this.column = column;
     this.row = row;
-    this.state = 0;
+    this.state = state;
     this.taskNum = taskNum;
-    console.log(this.taskNum);
+    this.task_image = taskImage;
   }
 
   drawButton(x, y) {
@@ -228,6 +236,7 @@ class TaskButton {
   releaseButton() {
     selectedLine = this.taskInfo;
     selectedTask = this;
+    setTheImage();
     selectedObject = {};
   }
 }
@@ -260,7 +269,6 @@ function windowResized() {
 }
 
 function draw () {
-
   background(51);
 
   if (mode == 'script') {
@@ -370,7 +378,12 @@ function draw () {
     var belowScreen = (windowHeight * 0.9) * 1 / 4 + 50 + (windowHeight * 0.9) / 4;
     textAlign(CENTER);
     fill(0);
+    var topLeftCornerX = windowWidth / 2 - ((windowHeight * 0.9) / 2) * 16 / 9 / 2;
+    var topLeftCornerY = (windowHeight * 0.9) * 1/4 + 50 - (windowHeight * 0.9) / 4;
     text('NO IMAGE UPLOADED FOR THIS SCENE', windowWidth / 2, (windowHeight * 0.9) * 1/4 + 50);
+    if (task_image != null) {
+      image(task_image, topLeftCornerX, topLeftCornerY, ((windowHeight * 0.9) / 2) * 16 / 9, (windowHeight * 0.9) / 2);
+    }
     // Line
     rectMode(CORNERS);
     fill(NORMALBOXCOLOR);
@@ -488,6 +501,17 @@ function draw () {
       textAlign(CENTER);
       textStyle(BOLD);
       text('Completed', markCompletedBox.x + markCompletedBox.width/2, markCompletedBox.y + 20);
+
+      if ((hoveringOver(imageUploadBox)) || (objectTargeted == imageUploadBox)) {
+        fill(50, 250, 50);
+      }
+      else
+        fill(30, 200, 30);
+      rect(imageUploadBox.x, imageUploadBox.y, imageUploadBox.width, imageUploadBox.height, 5);
+      fill(255);
+      textAlign(CENTER);
+      textStyle(BOLD);
+      text('Image Upload', imageUploadBox.x + imageUploadBox.width/2, imageUploadBox.y + 20);
     }
 
   }
@@ -576,7 +600,7 @@ function mouseReleased() {
       selectedObject.releaseButton();
     }
     else {
-      if (!hoveringOver(markNotStartedBox) && !hoveringOver(markInProgressBox) && !hoveringOver(markCompletedBox)) {
+      if (!hoveringOver(markNotStartedBox) && !hoveringOver(markInProgressBox) && !hoveringOver(markCompletedBox)  && !hoveringOver(imageUploadBox)) {
         selectedLine = {};
         selectedTask = {};
       }
@@ -596,7 +620,8 @@ function mouseReleased() {
         positions[task_lineNum] = {};
       positions[task_lineNum][i] = taskList[i];
     }
-    //console.log(positions);
+
+    console.log(positions);
     selectedLine = {};
 
     var i = 0;
@@ -605,7 +630,7 @@ function mouseReleased() {
     for (uniqueLines in positions) {
       for(task in positions[uniqueLines]) {
         //if (taskButtons[taskCount] == null)
-          taskButtons[taskCount] = new TaskButton(positions[uniqueLines][task], i, j, taskCount);
+          taskButtons[taskCount] = new TaskButton(positions[uniqueLines][task], i, j, positions[uniqueLines][task].task_id, positions[uniqueLines][task].state, positions[uniqueLines][task].task_image);
         j++;
         taskCount ++;
       }
@@ -637,6 +662,8 @@ function mouseReleased() {
         line_object: selectedLine,
         description: textInput,
         state: 0,
+        task_id: taskNumber,
+        task_image: null,
       };
       taskNumber++;
       objectTargeted = {};
@@ -656,24 +683,29 @@ function mouseReleased() {
 
   if (mode == 'timeline') {
     if (hoveringOver(markNotStartedBox)) {
-      if (selectedTask != {}) {
+      if (objSize(selectedTask) > 0) {
         selectedTask.state = 0;
         taskList[selectedTask.taskNum].state = 0;
         writeTaskData();
       }
     }
     if (hoveringOver(markInProgressBox)) {
-      if (selectedTask != {}) {
+      if (objSize(selectedTask) > 0) {
         selectedTask.state = 1;
         taskList[selectedTask.taskNum].state = 1;
         writeTaskData();
       }
     }
     if (hoveringOver(markCompletedBox)) {
-      if (selectedTask != {}) {
+      if (objSize(selectedTask) > 0) {
         selectedTask.state = 2;
         taskList[selectedTask.taskNum].state = 2;
         writeTaskData();
+      }
+    }
+    if (hoveringOver(imageUploadBox)) {
+      if (objSize(selectedTask) > 0) {
+        performClick();
       }
     }
   }
@@ -768,6 +800,12 @@ function readTaskData() {
   });
 }
 
+function uploadImageToStorage(filename, file) {
+  return filename.put(file).then(function(snapshot) {
+    console.log('Uploaded a blob or file!');
+  });
+}
+
 function objSize(obj) {
   var count = 0;
   for (each in obj) {
@@ -789,6 +827,51 @@ function handleFileSelect(evt) {
   //console.log(readFile);
 }
 
+function handleImageFileSelect(evt) {
+  // code from http://codepen.io/matt-west/pen/CfilG
+  var file = evt.target.files[0]; // FileList object
+  var imageType = /image.*/;
+  //readFile.readAsDataURL(file);
+  if (file.type.match(imageType)) {
+    var readFile = new FileReader();
+    readFile.onload = function(e) {
+      if (selectedTask != null) {
+        var image_name = 'line' + selectedTask.taskInfo.line_object.line_number + '_number' + selectedTask.row + '_task' + selectedTask.taskNum
+        var taskIndexImage = storageEpisodeRef.child(image_name);
+        uploadImageToStorage(taskIndexImage, file);
+        image_files[selectedTask.taskNum] = loadImage(readFile.result)
+        task_image = image_files[selectedTask.taskNum];
+        selectedTask.task_image = image_name;
+        for (tasks in taskList) {
+          if (taskList[tasks].task_id == selectedTask.taskNum)
+            taskList[tasks].task_image = image_name;
+        }
+        writeTaskData();
+      }
+    }
+    readFile.readAsDataURL(file); 
+  }
+}
+
+function loadImageFromFirebase(filename) {
+  if (filename != null) {
+    console.log('getting image');
+    var taskImageDownload = storageEpisodeRef.child(filename);
+
+    taskImageDownload.getDownloadURL().then(function(url) {
+      //doesnt work
+    });
+  }
+}
+
+function setTheImage() {
+  if (image_files[selectedTask.taskNum] != null) {
+    task_image = image_files[selectedTask.taskNum];
+  }
+  else {task_image = null;
+  }
+}
+
 function getScriptNumber() {
   var scriptDataPromise = readScriptData();
 
@@ -802,6 +885,9 @@ function getScriptNumber() {
   taskDataPromise.then(function(data) {
     console.log('got tasks');
   });
+
+  storageEpisodeRef = imageRef.child('episode' + episode_number);
+  //test_image = storageEpisodeRef.child('test_image.png');
 }
 
 function createButtons() {
@@ -846,10 +932,27 @@ function createButtons() {
     width: 100,
     height: 30,
   };
+
+  imageUploadBox = {
+    x: windowWidth * .95 - 105,
+    y: windowHeight * .9 - 80,
+    width: 100,
+    height: 30,
+  }
 }
 
 function hoveringOver(object) {
   return (mouseX > object.x && mouseX < object.x + object.width && mouseY > object.y && mouseY < object.y + object.height)
 }
 
+function performClick() {
+   var elem = document.getElementById("imageFiles");
+   if(elem && document.createEvent) {
+      var evt = document.createEvent("MouseEvents");
+      evt.initEvent("click", true, false);
+      elem.dispatchEvent(evt);
+   }
+}
+
 //document.getElementById('file').addEventListener('change', handleFileSelect, false);
+document.getElementById('imageFiles').addEventListener('change', handleImageFileSelect, false);
